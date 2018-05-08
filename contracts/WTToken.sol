@@ -400,14 +400,17 @@ contract WTToken is BurnableToken, UpgradeableToken {
     }
   }
 
-  function WTToken() {
+  function WTToken(address _owner)  UpgradeableToken(_owner) {
     name = "wetoken";
     symbol = "wetoken";
     totalSupply = 3000000000;
     decimals = 2;
-    owner = msg.sender;
+
     // Allocate initial balance to the owner
-    balances[owner] = totalSupply;
+    balances[_owner] = totalSupply;
+
+    // save the owner
+    owner = _owner;
   }
 
   // privileged transfer

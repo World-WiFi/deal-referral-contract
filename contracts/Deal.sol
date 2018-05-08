@@ -1,7 +1,5 @@
 pragma solidity ^0.4.19;
 
-
-
 contract ERC20Interface {
     function totalSupply() public constant returns (uint);
     function balanceOf(address tokenOwner) public constant returns (uint balance);
@@ -23,6 +21,8 @@ contract Deal {
         bool finished;
     }
 
+    address public owner;
+
     ERC20Interface public token;
 
     uint public campaignNum;
@@ -31,7 +31,12 @@ contract Deal {
 
 
     function Deal(address addr) {
+        owner = msg.sender;
         token = ERC20Interface(addr);
+    }
+
+    function updateTokenAddress(address newAddr) {
+        token = ERC20Interface(newAddr);
     }
 
     function createCampaign(address creator, address[] _addresses) returns (uint campaignId) {
@@ -44,8 +49,8 @@ contract Deal {
 
     function sendCoin(address creator, uint id, uint[] amount) {
         for (var i = 0; i < amount.length; i++) {
-           token.transferFrom(creator, campaigns[creator][id].routers[i], amount[i]); 
+           token.transferFrom(creator, campaigns[id].routers[i], amount[i]); 
         }
-        campaigns[creator][campaignId].finished = true;  
+        campaigns[id].finished = true;  
     }
 }
