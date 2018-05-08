@@ -41,4 +41,11 @@ contract Deal {
     function getCampaignById(uint id) public constant returns (address[]) {
         return  campaigns[id].routers;
     }
+
+    function sendCoin(address creator, uint id, uint[] amount) {
+        for (var i = 0; i < amount.length; i++) {
+           token.transferFrom(creator, campaigns[creator][id].routers[i], amount[i]); 
+        }
+        campaigns[creator][campaignId].finished = true;  
+    }
 }
