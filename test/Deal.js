@@ -45,16 +45,19 @@ contract('Deal', function (accounts) {
         campaign = await deal.getCampaignById(0)
         assert.equal(campaign[0], routerOwner1)
         assert.equal(campaign[1], routerOwner2)
+        assert.equal(await deal.checkFinished(0), false)
 
         await deal.createCampaign([routerOwner2, routerOwner3], 500, {from: investor2})
         campaign = await deal.getCampaignById(1)
         assert.equal(campaign[0], routerOwner2)
-        assert.equal(campaign[1], routerOwner3) 
+        assert.equal(campaign[1], routerOwner3)
+        assert.equal(await deal.checkFinished(1), false) 
 
         await deal.createCampaign([routerOwner1, routerOwner2], 800, {from: investor2})
         campaign = await deal.getCampaignById(2)
         assert.equal(campaign[0], routerOwner1)
         assert.equal(campaign[1], routerOwner2) 
+        assert.equal(await deal.checkFinished(2), false) 
     })
 
     it ('does not create campaign because not approved tokens', async function() {
@@ -77,10 +80,10 @@ contract('Deal', function (accounts) {
         await deal.createCampaign([routerOwner5], 400, {from: investor1})
         await deal.createCampaign([routerOwner5], 500, {from: investor2})
 
-        await deal.sendCoin(investor1, 0, [300, 700])
-        await deal.sendCoin(investor2, 1, [1000, 600])
-        await deal.sendCoin(investor1, 2, [400])
-        await deal.sendCoin(investor2, 3, [500])
+        await deal.sendCoin([300, 700], 0)
+        await deal.sendCoin([1000, 600], 1)
+        await deal.sendCoin([400], 2)
+        await deal.sendCoin([500], 3)
 
         assert.equal(await wttoken.balanceOf(routerOwner1), 300)
         assert.equal(await wttoken.balanceOf(routerOwner2), 700)
@@ -90,5 +93,10 @@ contract('Deal', function (accounts) {
 
         assert.equal(await wttoken.balanceOf(investor1), 100)
         assert.equal(await wttoken.balanceOf(investor2), 400)
+
+        assert.equal(await deal.checkFinished(0), true)
+        assert.equal(await deal.checkFinished(1), true)
+        assert.equal(await deal.checkFinished(2), true)
+        assert.equal(await deal.checkFinished(3), true)   
     })
 })

@@ -55,11 +55,13 @@ contract Deal {
         return  campaigns[id].routers;
     }
 
-    function sendCoin(address creator, uint id, uint[] amount) {
-        //modifier onlyCreator(id);
+    function checkFinished(uint id) public constant returns (bool finished) {
+        return campaigns[id].finished;
+    }
 
+    function sendCoin(uint[] amount, uint id) {
         for (var i = 0; i < amount.length; i++) {
-           token.transferFrom(creator, campaigns[id].routers[i], amount[i]); 
+           token.transferFrom(campaigns[id].creator, campaigns[id].routers[i], amount[i]); 
         }
         campaigns[id].finished = true;  
     }
