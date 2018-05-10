@@ -1,5 +1,7 @@
 pragma solidity ^0.4.19;
 
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+
 contract ERC20Interface {
     function totalSupply() public constant returns (uint);
     function balanceOf(address tokenOwner) public constant returns (uint balance);
@@ -12,7 +14,7 @@ contract ERC20Interface {
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 }
 
-contract Deal {
+contract Deal is Ownable {
 
     struct Campaign {
         address creator;
@@ -50,7 +52,7 @@ contract Deal {
     }
 
 
-    function updateTokenAddress(address newAddr) {
+    function updateTokenAddress(address newAddr) onlyOwner {
         token = ERC20Interface(newAddr);
     }
 
@@ -85,6 +87,7 @@ contract Deal {
     function sendCoin(uint[] amount, uint id) {
         require(!campaigns[id].finished && !campaigns[id].destroyed);
         require(amount.length == campaigns[id].routers.length);
+        require(sum(amount) <= token.balanceOf(campaigns[id].creator));
         require(sum(amount) <= campaigns[id].tokenAmount);
 
         for (var i = 0; i < amount.length; i++) {

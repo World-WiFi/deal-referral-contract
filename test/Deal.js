@@ -33,6 +33,15 @@ contract('Deal', function (accounts) {
         assert.equal(await deal.token(), newToken.address)
     })
 
+    it ('does not update wttoken address in deal because not owner', async function(){
+        newToken = await WTToken.new(owner)
+        try {
+            await deal.updateTokenAddress(newToken.address, {from: investor1})
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
     it ('transfer tokens to investor', async function() {
         await wttoken.transfer(investor1, 1000)
         assert.equal(await wttoken.balanceOf(investor1), 1000)
@@ -175,6 +184,20 @@ contract('Deal', function (accounts) {
         try {
            await deal.sendCoin([200], 0)
         } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
+    it ('does not send coins to router owners because tokens are spent', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        await wttoken.transfer(investor2, 1000, {from: investor1})
+        try {
+           await deal.sendCoin([200, 1200], 0)
+        } catch (error) {
+            assert.equal(await wttoken.balanceOf(routerOwner1), 0)
+            assert.equal(await wttoken.balanceOf(routerOwner2), 0)
             assert.equal(error, 'Error: VM Exception while processing transaction: revert')
         }
     })
