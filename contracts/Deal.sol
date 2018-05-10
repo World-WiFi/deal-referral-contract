@@ -40,6 +40,15 @@ contract Deal {
         token = ERC20Interface(addr);
     }
 
+    function sum(uint[] array) public returns (uint) {
+        uint summa;
+        for (uint i; i < array.length; i++) {
+            summa += array[i];
+        }
+        return summa;
+    }
+
+
     function updateTokenAddress(address newAddr) {
         token = ERC20Interface(newAddr);
     }
@@ -60,6 +69,8 @@ contract Deal {
     }
 
     function sendCoin(uint[] amount, uint id) {
+        require(!campaigns[id].finished);
+        require(sum(amount) <= campaigns[id].tokenAmount);
         for (var i = 0; i < amount.length; i++) {
            token.transferFrom(campaigns[id].creator, campaigns[id].routers[i], amount[i]); 
         }

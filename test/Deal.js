@@ -99,4 +99,27 @@ contract('Deal', function (accounts) {
         assert.equal(await deal.checkFinished(2), true)
         assert.equal(await deal.checkFinished(3), true)   
     })
+
+    it ('does not send coins to router owners because wrong number of tokens', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        try {
+           await deal.sendCoin([300, 1700], 0)
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
+    it ('does not send coins to router owners because campaign finished', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        await deal.sendCoin([300, 700], 0)
+        try {
+           await deal.sendCoin([200, 300], 0)
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
 })
