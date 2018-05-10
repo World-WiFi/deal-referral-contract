@@ -82,6 +82,21 @@ contract('Deal', function (accounts) {
         }
     })
 
+    it ('finds campaign creator by compaign id', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.transfer(investor2, 2500)
+
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await wttoken.approve(deal.address, 2500, {from: investor2})
+
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        await deal.createCampaign([routerOwner3, routerOwner4], 1600, {from: investor2})
+
+        assert.equal(await deal.getAddressCreatorById(0), investor1)
+        assert.equal(await deal.getAddressCreatorById(1), investor2)
+
+    })
+
     it ('sends coins to router owners', async function() {
         await wttoken.transfer(investor1, 1500)
         await wttoken.transfer(investor2, 2500)
@@ -139,6 +154,19 @@ contract('Deal', function (accounts) {
         }
     })
 
+    it ('does not send coins to router owners because campaign destroyed', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        await deal.destroyCampaign(0, {from: investor1})
+
+        try {
+           await deal.sendCoin([200, 300], 0)
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
     it ('does not send coins to router owners because wrong quantity router owners', async function() {
         await wttoken.transfer(investor1, 1500)
         await wttoken.approve(deal.address, 1500, {from: investor1})
@@ -149,5 +177,34 @@ contract('Deal', function (accounts) {
         } catch (error) {
             assert.equal(error, 'Error: VM Exception while processing transaction: revert')
         }
+    })
+
+    it ('destroys campaign', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+
+        assert.equal(await deal.checkDestroyed(0), false)
+
+        await deal.destroyCampaign(0, {from: investor1})
+
+        assert.equal(await deal.checkDestroyed(0), true)
+
+    })
+
+    it ('does not destroy campaign when sender to equal creator', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+
+        assert.equal(await deal.checkDestroyed(0), false)
+        
+        try {
+            await deal.destroyCampaign(0, {from: investor2})
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+
+        assert.equal(await deal.checkDestroyed(0), false)
     })
 })

@@ -19,6 +19,7 @@ contract Deal {
         address[] routers;
         uint tokenAmount;
         bool finished;
+        bool destroyed;
     }
 
     address public owner;
@@ -56,9 +57,13 @@ contract Deal {
     function createCampaign(address[] _addresses, uint tokenAmount) returns (bool success) {
         require(token.balanceOf(msg.sender) >= tokenAmount);
         require(token.allowance(msg.sender, this) >= tokenAmount);
-        campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false);
+        campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false, false);
         return true;
         
+    }
+
+    function destroyCampaign(uint id) onlyCreator(id) returns (bool success) {
+        campaigns[id].destroyed = true;
     }
 
     function getCampaignById(uint id) public constant returns (address[]) {
@@ -69,14 +74,22 @@ contract Deal {
         return campaigns[id].finished;
     }
 
+    function checkDestroyed(uint id) public constant returns (bool destroyed) {
+        return campaigns[id].destroyed;
+    }
+
+    function getAddressCreatorById(uint id) public constant returns(address) {
+        return campaigns[id].creator;
+    }
+
     function sendCoin(uint[] amount, uint id) {
-        require(!campaigns[id].finished);
+        require(!campaigns[id].finished && !campaigns[id].destroyed);
         require(amount.length == campaigns[id].routers.length);
         require(sum(amount) <= campaigns[id].tokenAmount);
 
         for (var i = 0; i < amount.length; i++) {
            token.transferFrom(campaigns[id].creator, campaigns[id].routers[i], amount[i]); 
         }
-        campaigns[id].finished = true;  
+        campaigns[id].finished = true;
     }
 }
