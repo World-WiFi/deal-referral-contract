@@ -39,6 +39,8 @@ contract('Deal', function (accounts) {
     })
 
     it ('creates campaign', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.transfer(investor2, 2500)
         await wttoken.approve(deal.address, 1000, {from: investor1})
         await wttoken.approve(deal.address, 1500, {from: investor2})
         await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
@@ -61,6 +63,18 @@ contract('Deal', function (accounts) {
     })
 
     it ('does not create campaign because not approved tokens', async function() {
+        await wttoken.transfer(investor1, 1500)
+
+        try {
+          await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1}) 
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
+    it ('does not create campaign because not enough tokens', async function() {
+        await wttoken.approve(deal.address, 1000, {from: investor1})
+
         try {
           await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1}) 
         } catch (error) {
@@ -104,6 +118,7 @@ contract('Deal', function (accounts) {
         await wttoken.transfer(investor1, 1500)
         await wttoken.approve(deal.address, 1500, {from: investor1})
         await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+
         try {
            await deal.sendCoin([300, 1700], 0)
         } catch (error) {
@@ -116,8 +131,21 @@ contract('Deal', function (accounts) {
         await wttoken.approve(deal.address, 1500, {from: investor1})
         await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
         await deal.sendCoin([300, 700], 0)
+
         try {
            await deal.sendCoin([200, 300], 0)
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
+    it ('does not send coins to router owners because wrong quantity router owners', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        
+        try {
+           await deal.sendCoin([200], 0)
         } catch (error) {
             assert.equal(error, 'Error: VM Exception while processing transaction: revert')
         }

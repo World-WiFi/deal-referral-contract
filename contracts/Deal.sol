@@ -54,6 +54,7 @@ contract Deal {
     }
 
     function createCampaign(address[] _addresses, uint tokenAmount) returns (bool success) {
+        require(token.balanceOf(msg.sender) >= tokenAmount);
         require(token.allowance(msg.sender, this) >= tokenAmount);
         campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false);
         return true;
@@ -70,7 +71,9 @@ contract Deal {
 
     function sendCoin(uint[] amount, uint id) {
         require(!campaigns[id].finished);
+        require(amount.length == campaigns[id].routers.length);
         require(sum(amount) <= campaigns[id].tokenAmount);
+
         for (var i = 0; i < amount.length; i++) {
            token.transferFrom(campaigns[id].creator, campaigns[id].routers[i], amount[i]); 
         }
