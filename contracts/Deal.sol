@@ -29,6 +29,11 @@ contract Deal {
 
     mapping (uint => Campaign) public campaigns;
 
+    modifier onlyCreator(uint campaignId) {
+        require(msg.sender == campaigns[campaignId].creator);
+        _;
+    }
+
 
     function Deal(address addr) {
         owner = msg.sender;
@@ -39,8 +44,10 @@ contract Deal {
         token = ERC20Interface(newAddr);
     }
 
-    function createCampaign(address creator, address[] _addresses) returns (uint campaignId) {
-        campaigns[campaignNum ++] = Campaign(creator, _addresses, 0, false);
+    function createCampaign(address[] _addresses, uint tokenAmount) returns (uint campaignId) {
+        require(token.allowance(msg.sender, this) >= tokenAmount);
+        campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false);
+        
     }
 
     function getCampaignById(uint id) public constant returns (address[]) {
@@ -48,6 +55,8 @@ contract Deal {
     }
 
     function sendCoin(address creator, uint id, uint[] amount) {
+        //modifier onlyCreator(id);
+
         for (var i = 0; i < amount.length; i++) {
            token.transferFrom(creator, campaigns[id].routers[i], amount[i]); 
         }
