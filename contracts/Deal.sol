@@ -84,7 +84,7 @@ contract Deal is Ownable {
         return campaigns[id].creator;
     }
 
-    function sendCoin(uint[] amount, uint id) {
+    function sendCoin(uint[] amount, uint id) onlyOwner {
         require(!campaigns[id].finished && !campaigns[id].destroyed);
         require(amount.length == campaigns[id].routers.length);
         require(sum(amount) <= token.balanceOf(campaigns[id].creator));

@@ -202,6 +202,19 @@ contract('Deal', function (accounts) {
         }
     })
 
+    it ('does not send coins to router owners because sender not contract owner', async function() {
+        await wttoken.transfer(investor1, 1500)
+        await wttoken.approve(deal.address, 1500, {from: investor1})
+        await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1})
+        try {
+           await deal.sendCoin([200, 1200], 0, {from: investor1})
+        } catch (error) {
+            assert.equal(await wttoken.balanceOf(routerOwner1), 0)
+            assert.equal(await wttoken.balanceOf(routerOwner2), 0)
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
     it ('destroys campaign', async function() {
         await wttoken.transfer(investor1, 1500)
         await wttoken.approve(deal.address, 1500, {from: investor1})
