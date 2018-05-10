@@ -44,9 +44,10 @@ contract Deal {
         token = ERC20Interface(newAddr);
     }
 
-    function createCampaign(address[] _addresses, uint tokenAmount) returns (uint campaignId) {
+    function createCampaign(address[] _addresses, uint tokenAmount) returns (bool success) {
         require(token.allowance(msg.sender, this) >= tokenAmount);
         campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false);
+        return true;
         
     }
 

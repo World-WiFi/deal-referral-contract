@@ -57,6 +57,14 @@ contract('Deal', function (accounts) {
         assert.equal(campaign[1], routerOwner2) 
     })
 
+    it ('does not create campaign because not approved tokens', async function() {
+        try {
+          await deal.createCampaign([routerOwner1, routerOwner2], 1000, {from: investor1}) 
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+    })
+
     it ('sends coins to router owners', async function() {
         await wttoken.transfer(investor1, 1500)
         await wttoken.transfer(investor2, 2500)
