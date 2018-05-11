@@ -15,12 +15,14 @@ contract('Deal', function (accounts) {
         routerOwner4 = accounts[6]
         routerOwner5 = accounts[7]
         newOwner = accounts[8]
+        wwfAddress = accounts[9]
         wttoken = await WTToken.new(owner)
         deal = await Deal.new(wttoken.address)
     })
 
     it('has an owner', async function () {
         assert.equal(await deal.owner(), owner)
+        console.log(wwfAddress)
     })
 
     it ('has wttoken address in deal', async function() {

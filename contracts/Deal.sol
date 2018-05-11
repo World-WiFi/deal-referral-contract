@@ -38,9 +38,9 @@ contract Deal is Ownable {
     }
 
 
-    function Deal(address addr) {
+    function Deal(address tokenAddress) {
         owner = msg.sender;
-        token = ERC20Interface(addr);
+        token = ERC20Interface(tokenAddress);
     }
 
     function sum(uint[] array) public returns (uint) {
@@ -60,8 +60,7 @@ contract Deal is Ownable {
         require(token.balanceOf(msg.sender) >= tokenAmount);
         require(token.allowance(msg.sender, this) >= tokenAmount);
         campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false, false);
-        return true;
-        
+        return true;    
     }
 
     function destroyCampaign(uint id) onlyCreator(id) returns (bool success) {
