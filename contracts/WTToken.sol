@@ -1,24 +1,23 @@
 pragma solidity ^0.4.13;
 
+contract Receiver {
+  function tokenFallback(address from, uint value, bytes data);
+}
+
 /*
  * ERC20 interface
  * see https://github.com/ethereum/EIPs/issues/20
  */
 contract ERC20 {
   uint public totalSupply;
-  function balanceOf(address who) constant returns (uint);
-  function allowance(address owner, address spender) constant returns (uint);
+  function balanceOf(address who) public constant returns (uint);
+  function allowance(address owner, address spender) public constant returns (uint);
 
-  function transfer(address to, uint value) returns (bool ok);
-  function transferFrom(address from, address to, uint value) returns (bool ok);
-  function approve(address spender, uint value) returns (bool ok);
+  function transfer(address to, uint value) public returns (bool ok);
+  function transferFrom(address from, address to, uint value) public returns (bool ok);
+  function approve(address spender, uint value) public returns (bool ok);
   event Transfer(address indexed from, address indexed to, uint value);
   event Approval(address indexed owner, address indexed spender, uint value);
-}
-
-// ERC223
-contract ContractReceiver {
-  function tokenFallback(address from, uint value);
 }
 
 /**
@@ -81,6 +80,7 @@ contract SafeMath {
  * https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
 contract StandardToken is ERC20, SafeMath {
+  event Transfer(address indexed from, address indexed to, uint indexed value, bytes data);
 
   /* Token supply got increased and a new owner received these tokens */
   event Minted(address receiver, uint amount);
@@ -104,10 +104,21 @@ contract StandardToken is ERC20, SafeMath {
      _;
   }
 
-  function transfer(address _to, uint _value) onlyPayloadSize(2 * 32) returns (bool success) {
+  function transfer(address _to, uint _value) onlyPayloadSize(2 * 32) public returns (bool success) {
+      bytes memory _empty;
+
+      return transfer(_to, _value, _empty);
+  }
+
+  function transfer(address _to, uint _value, bytes _data) public returns (bool success) {
     balances[msg.sender] = safeSub(balances[msg.sender], _value);
     balances[_to] = safeAdd(balances[_to], _value);
+    Transfer(msg.sender, _to, _value, _data);
     Transfer(msg.sender, _to, _value);
+
+    if (isContract(_to)) {
+      Receiver(_to).tokenFallback(msg.sender, _value, _data);
+    }
 
     return true;
   }
@@ -120,7 +131,7 @@ contract StandardToken is ERC20, SafeMath {
     return (length > 0);
   }
 
-  function transferFrom(address _from, address _to, uint _value) returns (bool success) {
+  function transferFrom(address _from, address _to, uint _value) public returns (bool success) {
     uint _allowance = allowed[_from][msg.sender];
 
     // Check is not needed because safeSub(_allowance, _value) will already throw if this condition is not met
@@ -133,11 +144,11 @@ contract StandardToken is ERC20, SafeMath {
     return true;
   }
 
-  function balanceOf(address _owner) constant returns (uint balance) {
+  function balanceOf(address _owner) public constant returns (uint balance) {
     return balances[_owner];
   }
 
-  function approve(address _spender, uint _value) returns (bool success) {
+  function approve(address _spender, uint _value) public returns (bool success) {
 
     // To change the approve amount you first have to reduce the addresses`
     //  allowance to zero by calling `approve(_spender, 0)` if it is not
@@ -150,7 +161,7 @@ contract StandardToken is ERC20, SafeMath {
     return true;
   }
 
-  function allowance(address _owner, address _spender) constant returns (uint remaining) {
+  function allowance(address _owner, address _spender) public constant returns (uint remaining) {
     return allowed[_owner][_spender];
   }
 
@@ -160,7 +171,7 @@ contract StandardToken is ERC20, SafeMath {
    * Works around https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
    *
    */
-  function addApproval(address _spender, uint _addedValue)
+  function addApproval(address _spender, uint _addedValue) public
   onlyPayloadSize(2 * 32)
   returns (bool success) {
       uint oldValue = allowed[msg.sender][_spender];
@@ -174,7 +185,7 @@ contract StandardToken is ERC20, SafeMath {
    *
    * Works around https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
    */
-  function subApproval(address _spender, uint _subtractedValue)
+  function subApproval(address _spender, uint _subtractedValue) public
   onlyPayloadSize(2 * 32)
   returns (bool success) {
 
@@ -204,7 +215,7 @@ contract BurnableToken is StandardToken {
    * Burn extra tokens from a balance.
    *
    */
-  function burn(uint burnAmount) {
+  function burn(uint burnAmount) public {
     address burner = msg.sender;
     balances[burner] = safeSub(balances[burner], burnAmount);
     totalSupply = safeSub(totalSupply, burnAmount);
@@ -276,7 +287,7 @@ contract UpgradeableToken is StandardToken {
   /**
    * Do not allow construction without upgrade master set.
    */
-  function UpgradeableToken(address _upgradeMaster) {
+  function UpgradeableToken(address _upgradeMaster) public {
     upgradeMaster = _upgradeMaster;
   }
 
@@ -394,17 +405,22 @@ contract WTToken is BurnableToken, UpgradeableToken {
     _;
   }
 
-  function transferOwnership(address newOwner) onlyOwner {
+  modifier onlyNotSame(address _from, address _to) {
+    if(_from == _to) revert();
+    _;
+  }
+
+  function transferOwnership(address newOwner) public onlyOwner {
     if (newOwner != address(0)) {
       owner = newOwner;
     }
   }
 
-  function WTToken(address _owner)  UpgradeableToken(_owner) {
+  function WTToken(address _owner) public UpgradeableToken(_owner) {
     name = "wetoken";
-    symbol = "wetoken";
-    totalSupply = 3000000000;
+    symbol = "WT";
     decimals = 2;
+    totalSupply = 30000 * 10 ** uint(decimals);
 
     // Allocate initial balance to the owner
     balances[_owner] = totalSupply;
@@ -413,8 +429,12 @@ contract WTToken is BurnableToken, UpgradeableToken {
     owner = _owner;
   }
 
+  function mintingFinish() public onlyOwner {
+    mintingFinished = true;
+  }
+
   // privileged transfer
-  function transferPrivileged(address _to, uint _value) onlyOwner returns (bool success) {
+  function transferPrivileged(address _to, uint _value) public onlyOwner returns (bool success) {
     balances[msg.sender] = safeSub(balances[msg.sender], _value);
     balances[_to] = safeAdd(balances[_to], _value);
     previligedBalances[_to] = safeAdd(previligedBalances[_to], _value);
@@ -423,12 +443,12 @@ contract WTToken is BurnableToken, UpgradeableToken {
   }
 
   // get priveleged balance
-  function getPrivilegedBalance(address _owner) constant returns (uint balance) {
+  function getPrivilegedBalance(address _owner) public constant returns (uint balance) {
     return previligedBalances[_owner];
   }
 
   // admin only can transfer from the privileged accounts
-  function transferFromPrivileged(address _from, address _to, uint _value) onlyOwner returns (bool success) {
+  function transferFromPrivileged(address _from, address _to, uint _value) public onlyOwner onlyNotSame(_from, _to) returns (bool success) {
     uint availablePrevilegedBalance = previligedBalances[_from];
 
     balances[_from] = safeSub(balances[_from], _value);
@@ -444,6 +464,7 @@ contract WTToken is BurnableToken, UpgradeableToken {
    * Only callably by a crowdsale contract (mint agent).
    */
   function mint(address receiver, uint amount) onlyMintAgent canMint public {
+    amount *= 10 ** uint(decimals);
     totalSupply = safeAdd(totalSupply, amount);
     balances[receiver] = safeAdd(balances[receiver], amount);
 

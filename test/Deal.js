@@ -1,9 +1,12 @@
 const Deal = artifacts.require('./Deal.sol')
 const WTToken = artifacts.require('./WTToken')
+const ReferralContract = artifacts.require('./ReferralContract')
 
 contract('Deal', function (accounts) {
     let wttoken
     let deal
+    let ref1
+    let ref2
 
     beforeEach('setup contract for each test', async function () {
         owner = accounts[0]
@@ -18,11 +21,12 @@ contract('Deal', function (accounts) {
         wwfAddress = accounts[9]
         wttoken = await WTToken.new(owner)
         deal = await Deal.new(wttoken.address)
+        ref1 = await ReferralContract.new(wttoken.address, routerOwner2, routerOwner1)
+        ref2 = await ReferralContract.new(wttoken.address, routerOwner3, ref1.address)
     })
 
     it('has an owner', async function () {
         assert.equal(await deal.owner(), owner)
-        console.log(wwfAddress)
     })
 
     it ('has wttoken address in deal', async function() {
@@ -47,6 +51,10 @@ contract('Deal', function (accounts) {
     it ('transfer tokens to investor', async function() {
         await wttoken.transfer(investor1, 1000)
         assert.equal(await wttoken.balanceOf(investor1), 1000)
+        await wttoken.transfer(ref2.address, 1000)
+        console.log(await wttoken.balanceOf(routerOwner1))
+        console.log(await wttoken.balanceOf(routerOwner2))
+        console.log(await wttoken.balanceOf(routerOwner3))
     })
 
     it ('creates campaign', async function() {
