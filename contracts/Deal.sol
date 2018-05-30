@@ -1,36 +1,39 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.21;
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
-
-contract ERC20Interface {
-    function totalSupply() public constant returns (uint);
-    function balanceOf(address tokenOwner) public constant returns (uint balance);
-    function allowance(address tokenOwner, address spender) public constant returns (uint remaining);
-    function transfer(address to, uint tokens) public returns (bool success);
-    function approve(address spender, uint tokens) public returns (bool success);
+contract ERC223Interface {
+    uint public totalSupply;
+    function balanceOf(address who) constant returns (uint);
+    function transfer(address to, uint value) public returns (bool success);
+    function transfer(address to, uint value, bytes data) public returns (bool success);
     function transferFrom(address from, address to, uint tokens) public returns (bool success);
-
-    event Transfer(address indexed from, address indexed to, uint tokens);
-    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Transfer(address indexed from, address indexed to, uint value, bytes data);
 }
 
-contract Deal is Ownable {
+contract Deal {
+
+    enum Status { created, destroyed, finished }
+
+    event createCampaign(uint campaignId);
 
     struct Campaign {
         address creator;
-        address[] routers;
         uint tokenAmount;
-        bool finished;
-        bool destroyed;
+        Status status;
     }
 
     address public owner;
 
-    ERC20Interface public token;
+    ERC223Interface public token;
 
     uint public campaignNum;
 
     mapping (uint => Campaign) public campaigns;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
 
     modifier onlyCreator(uint campaignId) {
         require(msg.sender == campaigns[campaignId].creator);
@@ -38,9 +41,14 @@ contract Deal is Ownable {
     }
 
 
-    function Deal(address tokenAddress) {
-        owner = msg.sender;
-        token = ERC20Interface(tokenAddress);
+    function Deal(address tokenAddress, address _owner) {
+        owner = _owner;
+        token = ERC223Interface(tokenAddress);
+    }
+
+    function safeSub(uint a, uint b) internal returns (uint) {
+        assert(b <= a);
+        return a - b;
     }
 
     function sum(uint[] array) public returns (uint) {
@@ -51,47 +59,47 @@ contract Deal is Ownable {
         return summa;
     }
 
+    function tokenFallback(address from, uint value, bytes data) returns (uint) {
+       campaigns[campaignNum ++] = Campaign(from, value, Status.created);
+       createCampaign(campaignNum);
+    }
+
+    function addTokensToCampaign(uint id, uint value) returns (bool success) {
+        token.transferFrom(msg.sender, this, value);
+        campaigns[id].tokenAmount += value;
+    }
 
     function updateTokenAddress(address newAddr) onlyOwner {
-        token = ERC20Interface(newAddr);
+        token = ERC223Interface(newAddr);
     }
 
-    function createCampaign(address[] _addresses, uint tokenAmount) returns (bool success) {
-        require(token.balanceOf(msg.sender) >= tokenAmount);
-        require(token.allowance(msg.sender, this) >= tokenAmount);
-        campaigns[campaignNum ++] = Campaign(msg.sender, _addresses, tokenAmount, false, false);
-        return true;    
+    function destroyCampaign(uint id) onlyOwner returns (bool success) {
+        token.transfer(campaigns[id].creator, campaigns[id].tokenAmount);
+        campaigns[id].status = Status.destroyed;
     }
 
-    function destroyCampaign(uint id) onlyCreator(id) returns (bool success) {
-        campaigns[id].destroyed = true;
-    }
-
-    function getCampaignById(uint id) public constant returns (address[]) {
-        return  campaigns[id].routers;
-    }
-
-    function checkFinished(uint id) public constant returns (bool finished) {
-        return campaigns[id].finished;
-    }
-
-    function checkDestroyed(uint id) public constant returns (bool destroyed) {
-        return campaigns[id].destroyed;
+    function checkStatus(uint id) public constant returns (Status status) {
+        return campaigns[id].status;
     }
 
     function getAddressCreatorById(uint id) public constant returns(address) {
         return campaigns[id].creator;
     }
 
-    function sendCoin(uint[] amount, uint id) onlyOwner {
-        require(!campaigns[id].finished && !campaigns[id].destroyed);
-        require(amount.length == campaigns[id].routers.length);
-        require(sum(amount) <= token.balanceOf(campaigns[id].creator));
+    function getTokenAmountForCampaign(uint id) public constant returns (uint value) {
+        return campaigns[id].tokenAmount;
+    }
+
+    function sendCoin(address[] routerOwners, uint[] amount, uint id) onlyOwner {
+        require(campaigns[id].status == Status.created);
+        require(amount.length == routerOwners.length);
         require(sum(amount) <= campaigns[id].tokenAmount);
 
         for (var i = 0; i < amount.length; i++) {
-           token.transferFrom(campaigns[id].creator, campaigns[id].routers[i], amount[i]); 
+           token.transfer(routerOwners[i], amount[i]); 
         }
-        campaigns[id].finished = true;
+        campaigns[id].status = Status.finished;
+        var balance = safeSub(campaigns[id].tokenAmount, sum(amount));
+        token.transfer(campaigns[id].creator, balance);
     }
 }

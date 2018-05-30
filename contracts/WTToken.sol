@@ -373,7 +373,7 @@ contract UpgradeableToken is StandardToken {
 }
 
 
-contract WTToken is BurnableToken, UpgradeableToken {
+contract WeToken is BurnableToken, UpgradeableToken {
 
   string public name;
   string public symbol;
@@ -416,11 +416,11 @@ contract WTToken is BurnableToken, UpgradeableToken {
     }
   }
 
-  function WTToken(address _owner) public UpgradeableToken(_owner) {
-    name = "wetoken";
+  function WeToken(address _owner) public UpgradeableToken(_owner) {
+    name = "wttoken";
     symbol = "WT";
-    decimals = 2;
-    totalSupply = 30000 * 10 ** uint(decimals);
+    decimals = 18;
+    totalSupply = 300000000 * 10 ** uint(decimals);
 
     // Allocate initial balance to the owner
     balances[_owner] = totalSupply;
