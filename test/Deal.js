@@ -5,8 +5,6 @@ const ReferralContract = artifacts.require('./ReferralContract')
 contract('Deal', function (accounts) {
     let wetoken
     let deal
-    let ref1
-    let ref2
 
     beforeEach('setup contract for each test', async function () {
         owner = accounts[0]
@@ -21,6 +19,10 @@ contract('Deal', function (accounts) {
         wwfAddress = accounts[9]
         wttoken = await WTToken.new(owner)
         deal = await Deal.new(wttoken.address, owner)
+        ref1 = await ReferralContract.new(wttoken.address, routerOwner2,  routerOwner1) //for routerOwner2 (parent rO1)
+        ref2 = await ReferralContract.new(wttoken.address, routerOwner3,  ref1.address) //for routerOwner3 (parent rO2)
+        ref3 = await ReferralContract.new(wttoken.address, routerOwner4,  ref2.address) //for routerOwner4 (parent rO3)
+        ref4 = await ReferralContract.new(wttoken.address, routerOwner5,  ref1.address) //for routerOwner4 (parent rO2)
     })
 
     it('has an owner', async function () {
@@ -154,19 +156,15 @@ contract('Deal', function (accounts) {
         await wttoken.transfer(deal.address, 1500, {from: investor1})
         await wttoken.transfer(deal.address, 2500, {from: investor2})
 
-        await deal.sendCoin([routerOwner1, routerOwner2], [300, 700], 0, {from: owner})
-        await deal.sendCoin([routerOwner3, routerOwner4], [1000, 1500], 1, {from: owner})
+        await deal.sendCoin([ref1.address, ref2.address], [300, 700], 0, {from: owner})
+        await deal.sendCoin([ref3.address, ref4.address], [1000, 1500], 1, {from: owner})
 
-        assert.equal(await wttoken.balanceOf(routerOwner1), 300)
-        assert.equal(await wttoken.balanceOf(routerOwner2), 700)
-        assert.equal(await wttoken.balanceOf(routerOwner3), 1000)
-        assert.equal(await wttoken.balanceOf(routerOwner4), 1500)
-
-        assert.equal(await wttoken.balanceOf(investor1), 0)
-        assert.equal(await wttoken.balanceOf(investor2), 0)
-
-        assert.equal(await deal.checkStatus(0), 0)
-        assert.equal(await deal.checkStatus(0), 0)
+        assert.equal(await wttoken.balanceOf(routerOwner1), 226)
+        assert.equal(await wttoken.balanceOf(routerOwner2), 683)
+        assert.equal(await wttoken.balanceOf(routerOwner3), 712)
+        assert.equal(await wttoken.balanceOf(routerOwner4), 750)
+        assert.equal(await wttoken.balanceOf(routerOwner5), 1125)
+        
     })
 
     it ('finishs campaign', async function() {
