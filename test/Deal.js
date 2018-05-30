@@ -78,6 +78,23 @@ contract('Deal', function (accounts) {
         assert.equal(await deal.getTokenAmountForCampaign(0), 1500)
     })
 
+    it ('does not add tokens to campaign because not creator', async function() {
+        await wttoken.transfer(investor1, 1500)
+
+        await wttoken.transfer(deal.address, 1000, {from: investor1})
+
+        assert.equal(await deal.getTokenAmountForCampaign(0), 1000)
+
+        await wttoken.approve(deal.address, 500, {from: investor2})
+        try {
+            await deal.addTokensToCampaign(0, 500, {from: investor2})
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+        
+        assert.equal(await deal.getTokenAmountForCampaign(0), 1000)
+    })
+
     it ('does not add tokens to campaign because not enaugh approved tokens', async function() {
         await wttoken.transfer(investor1, 2500)
 
@@ -137,19 +154,43 @@ contract('Deal', function (accounts) {
         await wttoken.transfer(deal.address, 1500, {from: investor1})
         await wttoken.transfer(deal.address, 2500, {from: investor2})
 
-        await deal.sendCoin([routerOwner1, routerOwner2], [300, 700], 0)
-        await deal.sendCoin([routerOwner3, routerOwner4], [1000, 1500], 1)
+        await deal.sendCoin([routerOwner1, routerOwner2], [300, 700], 0, {from: owner})
+        await deal.sendCoin([routerOwner3, routerOwner4], [1000, 1500], 1, {from: owner})
 
         assert.equal(await wttoken.balanceOf(routerOwner1), 300)
         assert.equal(await wttoken.balanceOf(routerOwner2), 700)
         assert.equal(await wttoken.balanceOf(routerOwner3), 1000)
         assert.equal(await wttoken.balanceOf(routerOwner4), 1500)
 
-        assert.equal(await wttoken.balanceOf(investor1), 500)
+        assert.equal(await wttoken.balanceOf(investor1), 0)
         assert.equal(await wttoken.balanceOf(investor2), 0)
 
+        assert.equal(await deal.checkStatus(0), 0)
+        assert.equal(await deal.checkStatus(0), 0)
+    })
+
+    it ('finishs campaign', async function() {
+        await wttoken.transfer(investor1, 1500)
+
+        await wttoken.transfer(deal.address, 1500, {from: investor1})
+
+        await deal.sendCoin([routerOwner1, routerOwner2], [300, 700], 0, {from: owner})
+
+        assert.equal(await wttoken.balanceOf(routerOwner1), 300)
+        assert.equal(await wttoken.balanceOf(routerOwner2), 700)
+        assert.equal(await deal.getCurrentBalanceForCampaign(0), 500)
+
+        await deal.sendCoin([routerOwner3], [200], 0, {from: owner})
+
+        assert.equal(await wttoken.balanceOf(routerOwner3), 200)
+        assert.equal(await deal.checkStatus(0), 0)
+        assert.equal(await deal.getCurrentBalanceForCampaign(0), 300)
+        
+        await deal.finishCampaign(0, {from: owner})
+
+        assert.equal(await wttoken.balanceOf(investor1), 300)
         assert.equal(await deal.checkStatus(0), 2)
-        assert.equal(await deal.checkStatus(0), 2)
+        assert.equal(await deal.getCurrentBalanceForCampaign(0), 0)
     })
 
     it ('does not send coins to router owners because wrong number of tokens', async function() {

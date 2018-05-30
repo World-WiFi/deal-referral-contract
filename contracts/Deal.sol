@@ -19,6 +19,7 @@ contract Deal {
     struct Campaign {
         address creator;
         uint tokenAmount;
+        uint currentBalance;
         Status status;
     }
 
@@ -60,13 +61,14 @@ contract Deal {
     }
 
     function tokenFallback(address from, uint value, bytes data) returns (uint) {
-       campaigns[campaignNum ++] = Campaign(from, value, Status.created);
+       campaigns[campaignNum ++] = Campaign(from, value, value, Status.created);
        createCampaign(campaignNum);
     }
 
-    function addTokensToCampaign(uint id, uint value) returns (bool success) {
+    function addTokensToCampaign(uint id, uint value) onlyCreator(id) returns (bool success) {
         token.transferFrom(msg.sender, this, value);
         campaigns[id].tokenAmount += value;
+        campaigns[id].currentBalance += value;
     }
 
     function updateTokenAddress(address newAddr) onlyOwner {
@@ -76,6 +78,7 @@ contract Deal {
     function destroyCampaign(uint id) onlyOwner returns (bool success) {
         token.transfer(campaigns[id].creator, campaigns[id].tokenAmount);
         campaigns[id].status = Status.destroyed;
+        campaigns[id].currentBalance = 0;
     }
 
     function checkStatus(uint id) public constant returns (Status status) {
@@ -90,6 +93,16 @@ contract Deal {
         return campaigns[id].tokenAmount;
     }
 
+    function getCurrentBalanceForCampaign(uint id) public constant returns (uint value) {
+        return campaigns[id].currentBalance;
+    }
+
+    function finishCampaign(uint id) onlyOwner returns (bool success) {
+        campaigns[id].status = Status.finished;
+        token.transfer(campaigns[id].creator, campaigns[id].currentBalance);
+        campaigns[id].currentBalance = 0;
+    }
+
     function sendCoin(address[] routerOwners, uint[] amount, uint id) onlyOwner {
         require(campaigns[id].status == Status.created);
         require(amount.length == routerOwners.length);
@@ -98,8 +111,6 @@ contract Deal {
         for (var i = 0; i < amount.length; i++) {
            token.transfer(routerOwners[i], amount[i]); 
         }
-        campaigns[id].status = Status.finished;
-        var balance = safeSub(campaigns[id].tokenAmount, sum(amount));
-        token.transfer(campaigns[id].creator, balance);
+        campaigns[id].currentBalance = safeSub(campaigns[id].currentBalance, sum(amount));
     }
 }
