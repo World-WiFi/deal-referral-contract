@@ -164,6 +164,8 @@ contract('Deal', function (accounts) {
         assert.equal(await wttoken.balanceOf(routerOwner3), 712)
         assert.equal(await wttoken.balanceOf(routerOwner4), 750)
         assert.equal(await wttoken.balanceOf(routerOwner5), 1125)
+
+        console.log(await deal.campaigns(0))
         
     })
 

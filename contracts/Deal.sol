@@ -20,6 +20,7 @@ contract Deal {
         address creator;
         uint tokenAmount;
         uint currentBalance;
+        mapping (address => uint) routerOwners;
         Status status;
     }
 
@@ -103,13 +104,14 @@ contract Deal {
         campaigns[id].currentBalance = 0;
     }
 
-    function sendCoin(address[] routerOwners, uint[] amount, uint id) onlyOwner {
+    function sendCoin(address[] _routerOwners, uint[] amount, uint id) onlyOwner {
         require(campaigns[id].status == Status.created);
-        require(amount.length == routerOwners.length);
+        require(amount.length == _routerOwners.length);
         require(sum(amount) <= campaigns[id].tokenAmount);
 
         for (var i = 0; i < amount.length; i++) {
-           token.transfer(routerOwners[i], amount[i]); 
+           token.transfer(_routerOwners[i], amount[i]); 
+           campaigns[id].routerOwners[_routerOwners[i]] = amount[i];
         }
         campaigns[id].currentBalance = safeSub(campaigns[id].currentBalance, sum(amount));
     }
