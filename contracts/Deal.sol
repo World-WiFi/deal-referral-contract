@@ -14,13 +14,13 @@ contract Deal {
 
     enum Status { created, destroyed, finished }
 
-    event createCampaign(uint campaignId);
+    event CreateCampaign(uint campaignId);
+    event SendCoinForCampaign(uint campaignId);
 
     struct Campaign {
         address creator;
         uint tokenAmount;
         uint currentBalance;
-        mapping (address => uint) routerOwners;
         Status status;
     }
 
@@ -46,6 +46,7 @@ contract Deal {
     function Deal(address tokenAddress, address _owner) {
         owner = _owner;
         token = ERC223Interface(tokenAddress);
+        campaignNum = 1;
     }
 
     function safeSub(uint a, uint b) internal returns (uint) {
@@ -63,7 +64,7 @@ contract Deal {
 
     function tokenFallback(address from, uint value, bytes data) returns (uint) {
        campaigns[campaignNum ++] = Campaign(from, value, value, Status.created);
-       createCampaign(campaignNum);
+       CreateCampaign(campaignNum);
     }
 
     function addTokensToCampaign(uint id, uint value) onlyCreator(id) returns (bool success) {
@@ -111,8 +112,8 @@ contract Deal {
 
         for (var i = 0; i < amount.length; i++) {
            token.transfer(_routerOwners[i], amount[i]); 
-           campaigns[id].routerOwners[_routerOwners[i]] = amount[i];
         }
         campaigns[id].currentBalance = safeSub(campaigns[id].currentBalance, sum(amount));
+        SendCoinForCampaign(id);
     }
 }
