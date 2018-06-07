@@ -12,12 +12,33 @@ contract ReferralContract {
 
   address public referral;
   address public referrer;
+  address public owner;
   ERC223Interface public we_token;
 
+  modifier onlyOwner() {
+    require(msg.sender == owner);
+    _;
+  }
+
   function ReferralContract(address tokenAddress, address referralAddr, address referrerAddr) {
+    owner = msg.sender;
     we_token = ERC223Interface(tokenAddress);
     referral = referralAddr;
     referrer = referrerAddr;
+  }
+
+  function transferOwnership(address newOwner) public onlyOwner {
+    if (newOwner != address(0)) {
+      owner = newOwner;
+    }
+  }
+
+  function changeReferral(address newReferral) onlyOwner {
+    referral = newReferral;
+  }
+
+  function changeReferrer(address newReferrer) onlyOwner {
+    referrer = newReferrer;
   }
 
   function safeMul(uint a, uint b) internal returns (uint) {

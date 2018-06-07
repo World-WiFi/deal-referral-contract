@@ -37,6 +37,16 @@ contract('Deal', function (accounts) {
         assert.equal(await deal.owner(), owner)
     })
 
+    it('changes owner of campaign contract', async function () {
+        await deal.transferOwnership(newOwner, {from: owner})
+        assert.equal(await deal.owner(), newOwner)
+    })
+
+    it('changes owner of ref contract', async function () {
+        await ref1.transferOwnership(newOwner, {from: owner})
+        assert.equal(await ref1.owner(), newOwner)
+    })
+
     it ('has wttoken address in deal', async function() {
         assert.equal(await deal.token(), wttoken.address)
     })

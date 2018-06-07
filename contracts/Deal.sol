@@ -46,12 +46,17 @@ contract Deal {
 
 
     function Deal(address tokenAddress, address _owner, address _fee) {
-        owner = _owner;
-        fee = _fee;
-        token = ERC223Interface(tokenAddress);
-        campaignNum = 1;
+      owner = _owner;
+      fee = _fee;
+      token = ERC223Interface(tokenAddress);
+      campaignNum = 1;
     }
 
+    function transferOwnership(address newOwner) public onlyOwner {
+      if (newOwner != address(0)) {
+        owner = newOwner;
+      }
+    }
 
     function safeMul(uint a, uint b) internal returns (uint) {
       uint c = a * b;
