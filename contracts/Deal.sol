@@ -26,6 +26,8 @@ contract Deal {
 
     address public owner;
 
+    address public fee;
+
     ERC223Interface public token;
 
     uint public campaignNum;
@@ -43,15 +45,36 @@ contract Deal {
     }
 
 
-    function Deal(address tokenAddress, address _owner) {
+    function Deal(address tokenAddress, address _owner, address _fee) {
         owner = _owner;
+        fee = _fee;
         token = ERC223Interface(tokenAddress);
         campaignNum = 1;
     }
 
+
+    function safeMul(uint a, uint b) internal returns (uint) {
+      uint c = a * b;
+      assert(a == 0 || c / a == b);
+      return c;
+    }
+
+    function safeDiv(uint a, uint b) internal returns (uint) {
+      assert(b > 0);
+      uint c = a / b;
+      assert(a == b * c + a % b);
+      return c;
+    }
+
     function safeSub(uint a, uint b) internal returns (uint) {
-        assert(b <= a);
-        return a - b;
+      assert(b <= a);
+      return a - b;
+    }
+
+    function safeAdd(uint a, uint b) internal returns (uint) {
+      uint c = a + b;
+      assert(c>=a && c>=b);
+      return c;
     }
 
     function sum(uint[] array) public returns (uint) {
@@ -60,6 +83,10 @@ contract Deal {
             summa += array[i];
         }
         return summa;
+    }
+
+    function changeFeeAddress(address newFee) onlyOwner {
+        fee = newFee;
     }
 
     function tokenFallback(address from, uint value, bytes data) returns (uint) {
@@ -111,8 +138,9 @@ contract Deal {
         require(sum(amount) <= campaigns[id].tokenAmount);
 
         for (var i = 0; i < amount.length; i++) {
-           token.transfer(_routerOwners[i], amount[i]); 
+           token.transfer(_routerOwners[i], safeDiv(safeMul(amount[i], 95), 100)); 
         }
+        token.transfer(fee, safeDiv(safeMul(sum(amount), 5), 100) );
         campaigns[id].currentBalance = safeSub(campaigns[id].currentBalance, sum(amount));
         SendCoinForCampaign(id);
     }

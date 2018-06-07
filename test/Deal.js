@@ -16,17 +16,17 @@ contract('Deal', function (accounts) {
         routerOwner4 = accounts[6]
         routerOwner5 = accounts[7]
         newOwner = accounts[8]
-        wwfAddress = accounts[9]
-        tokenAmountForInvestor1 = 30000000
-        tokenAmountForInvestor2 = 50000000 
-        tokenForTransfer = 10000000
-        tokenForApprove = 5000000
-        tokensForSend1 = 1000000
-        tokensForSend2 = 2000000
-        tokensForSend3 = 3000000
-        tokensForSend4 = 4000000
+        fee = accounts[9]
+        tokenAmountForInvestor1 = 3000000000
+        tokenAmountForInvestor2 = 5000000000 
+        tokenForTransfer = 1000000000
+        tokenForApprove = 500000000
+        tokensForSend1 = 100000000
+        tokensForSend2 = 200000000
+        tokensForSend3 = 300000000
+        tokensForSend4 = 400000000
         wttoken = await WTToken.new(owner)
-        deal = await Deal.new(wttoken.address, owner)
+        deal = await Deal.new(wttoken.address, owner, fee)
         ref1 = await ReferralContract.new(wttoken.address, routerOwner2,  routerOwner1) //for routerOwner2 (parent rO1)
         ref2 = await ReferralContract.new(wttoken.address, routerOwner3,  ref1.address) //for routerOwner3 (parent rO2)
         ref3 = await ReferralContract.new(wttoken.address, routerOwner4,  ref2.address) //for routerOwner4 (parent rO3)
@@ -169,17 +169,25 @@ contract('Deal', function (accounts) {
         await deal.sendCoin([ref1.address, ref2.address], [tokensForSend1, tokensForSend2], 1, {from: owner})
         await deal.sendCoin([ref3.address, ref4.address], [tokensForSend3, tokensForSend4], 2, {from: owner})
 
-        tokensForRouterOwner1 = tokensForSend1*0.25 + tokensForSend2*(0.25**2) + tokensForSend3*(0.25**3) + tokensForSend4*(0.25**2)
-        tokensForRouterOwner2 = tokensForSend1*0.75 + (tokensForSend2*0.25 + tokensForSend3*(0.25**2) + tokensForSend4*0.25) * 0.75
-        tokensForRouterOwner3 = tokensForSend2*0.75 + tokensForSend3*0.25*0.75
-        tokensForRouterOwner4 = tokensForSend3*0.75
-        tokensForRouterOwner5 = tokensForSend4*0.75
+        tokensForSend1WithoutFee1 = tokensForSend1 * 0.95
+        tokensForSend1WithoutFee2 = tokensForSend2 * 0.95
+        tokensForSend1WithoutFee3 = tokensForSend3 * 0.95
+        tokensForSend1WithoutFee4 = tokensForSend4 * 0.95
+        feeTokens = (tokensForSend1 + tokensForSend2 + tokensForSend3 + tokensForSend4) * 0.05
+
+        tokensForRouterOwner1 = tokensForSend1WithoutFee1*0.25 + tokensForSend1WithoutFee2*(0.25**2) + tokensForSend1WithoutFee3*(0.25**3) + tokensForSend1WithoutFee4*(0.25**2)
+        tokensForRouterOwner2 = tokensForSend1WithoutFee1*0.75 + (tokensForSend1WithoutFee2*0.25 + tokensForSend1WithoutFee3*(0.25**2) + tokensForSend1WithoutFee4*0.25) * 0.75
+        tokensForRouterOwner3 = tokensForSend1WithoutFee2*0.75 + tokensForSend1WithoutFee3*0.25*0.75
+        tokensForRouterOwner4 = tokensForSend1WithoutFee3*0.75
+        tokensForRouterOwner5 = tokensForSend1WithoutFee4*0.75
 
         assert.equal(await wttoken.balanceOf(routerOwner1), tokensForRouterOwner1)
         assert.equal(await wttoken.balanceOf(routerOwner2), tokensForRouterOwner2)
         assert.equal(await wttoken.balanceOf(routerOwner3), tokensForRouterOwner3)
         assert.equal(await wttoken.balanceOf(routerOwner4), tokensForRouterOwner4)
         assert.equal(await wttoken.balanceOf(routerOwner5), tokensForRouterOwner5)
+        
+        assert.equal(await wttoken.balanceOf(fee), feeTokens)
         
     })
 
@@ -190,8 +198,8 @@ contract('Deal', function (accounts) {
 
         await deal.sendCoin([routerOwner1, routerOwner2], [tokensForSend1, tokensForSend2], 1, {from: owner})
 
-        assert.equal(await wttoken.balanceOf(routerOwner1), tokensForSend1)
-        assert.equal(await wttoken.balanceOf(routerOwner2), tokensForSend2)
+        assert.equal(await wttoken.balanceOf(routerOwner1), tokensForSend1*0.95)
+        assert.equal(await wttoken.balanceOf(routerOwner2), tokensForSend2*0.95)
 
         currentBalance = tokenAmountForInvestor1 - (tokensForSend1 + tokensForSend2)
 
@@ -199,7 +207,7 @@ contract('Deal', function (accounts) {
 
         await deal.sendCoin([routerOwner3], [tokensForSend3], 1, {from: owner})
 
-        assert.equal(await wttoken.balanceOf(routerOwner3), tokensForSend3)
+        assert.equal(await wttoken.balanceOf(routerOwner3), tokensForSend3*0.95)
         assert.equal(await deal.checkStatus(1), 0)
 
         currentBalance -= tokensForSend3
