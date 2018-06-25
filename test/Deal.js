@@ -1,5 +1,6 @@
 const Deal = artifacts.require('./Deal.sol')
 const WTToken = artifacts.require('./WeToken')
+const WTTokenNew = artifacts.require('./WeToken')
 const ReferralContract = artifacts.require('./ReferralContract')
 
 contract('Deal', function (accounts) {
@@ -26,6 +27,7 @@ contract('Deal', function (accounts) {
         tokensForSend3 = 0.3e9
         tokensForSend4 = 0.4e9
         wttoken = await WTToken.new(owner)
+        wttokenNew = await WTTokenNew.new(owner)
         deal = await Deal.new(wttoken.address, owner, fee)
         ref1 = await ReferralContract.new(wttoken.address, routerOwner2,  routerOwner1) //for routerOwner2 (parent rO1)
         ref2 = await ReferralContract.new(wttoken.address, routerOwner3,  ref1.address) //for routerOwner3 (parent rO2)
@@ -199,6 +201,20 @@ contract('Deal', function (accounts) {
         
         assert.equal(await wttoken.balanceOf(fee), feeTokens)
         
+    })
+    
+
+    it ('does not send coins to referral and referrer because uses other token', async function() {
+        await wttokenNew.transfer(investor1, tokenAmountForInvestor1)
+
+        try {
+           await await wttokenNew.transfer(ref1.address, tokenAmountForInvestor1, {from: investor1})
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+
+        assert.equal(await wttokenNew.balanceOf(routerOwner2), 0)
+        assert.equal(await wttokenNew.balanceOf(routerOwner1), 0)
     })
 
     it ('finishs campaign', async function() {
