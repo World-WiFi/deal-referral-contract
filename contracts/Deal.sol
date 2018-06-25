@@ -94,14 +94,14 @@ contract Deal {
         fee = newFee;
     }
 
-    function createCampaign(uint value) returns (uint) {
-       token.transferFrom(msg.sender, this, value);
-       campaigns[campaignNum ++] = Campaign(msg.sender, value, value, Status.created);
+    function createCampaign(uint value, address campaignCreator) onlyOwner returns (uint) {
+       token.transferFrom(campaignCreator, this, value);
+       campaigns[campaignNum ++] = Campaign(campaignCreator, value, value, Status.created);
        CreateCampaign(campaignNum);
     }
 
-    function addTokensToCampaign(uint id, uint value) onlyCreator(id) returns (bool success) {
-        token.transferFrom(msg.sender, this, value);
+    function addTokensToCampaign(uint id, uint value, address campaignCreator) onlyOwner returns (bool success) {
+        token.transferFrom(campaignCreator, this, value);
         campaigns[id].tokenAmount += value;
         campaigns[id].currentBalance += value;
     }
