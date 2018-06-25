@@ -94,8 +94,9 @@ contract Deal {
         fee = newFee;
     }
 
-    function tokenFallback(address from, uint value, bytes data) returns (uint) {
-       campaigns[campaignNum ++] = Campaign(from, value, value, Status.created);
+    function createCampaign(uint value) returns (uint) {
+       token.transferFrom(msg.sender, this, value);
+       campaigns[campaignNum ++] = Campaign(msg.sender, value, value, Status.created);
        CreateCampaign(campaignNum);
     }
 
