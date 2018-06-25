@@ -94,6 +94,7 @@ contract Deal {
     }
 
     function createCampaign(uint id, uint value, address campaignCreator) onlyOwner returns (uint) {
+       require(getAddressCreatorById(id) == address(0));
        token.transferFrom(campaignCreator, this, value);
        campaigns[id] = Campaign(campaignCreator, value, value, Status.created);
        CreateCampaign(id);

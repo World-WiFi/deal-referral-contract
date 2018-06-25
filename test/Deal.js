@@ -92,6 +92,25 @@ contract('Deal', function (accounts) {
 
     })
 
+    it ('does not create campaign because uses not unique id', async function() {
+        await wttoken.transfer(investor1, tokenAmountForInvestor1)
+        await wttoken.transfer(investor2, tokenAmountForInvestor2)
+
+        await wttoken.approve(deal.address, tokenAmountForInvestor1, {from: investor1})
+        await wttoken.approve(deal.address, tokenAmountForInvestor2, {from: investor2})
+
+        await deal.createCampaign(1, tokenAmountForInvestor1, investor1, {from: owner})
+
+        try {
+           await deal.createCampaign(1, tokenAmountForInvestor2, investor2, {from: owner})
+        } catch (error) {
+            assert.equal(error, 'Error: VM Exception while processing transaction: revert')
+        }
+
+        assert.equal(await deal.getAddressCreatorById(1), investor1)
+        assert.equal(await wttoken.balanceOf(deal.address), tokenAmountForInvestor1)
+    })
+
     it ('does not create campaign because uses other token', async function() {
         await wttokenNew.transfer(investor1, tokenAmountForInvestor1)
 
