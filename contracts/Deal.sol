@@ -49,7 +49,6 @@ contract Deal {
       owner = _owner;
       fee = _fee;
       token = ERC223Interface(tokenAddress);
-      campaignNum = 1;
     }
 
     function transferOwnership(address newOwner) public onlyOwner {
@@ -94,14 +93,14 @@ contract Deal {
         fee = newFee;
     }
 
-    function createCampaign(uint value, address campaignCreator) onlyOwner returns (uint) {
+    function createCampaign(uint id, uint value, address campaignCreator) onlyOwner returns (uint) {
        token.transferFrom(campaignCreator, this, value);
-       campaigns[campaignNum ++] = Campaign(campaignCreator, value, value, Status.created);
-       CreateCampaign(campaignNum);
+       campaigns[id] = Campaign(campaignCreator, value, value, Status.created);
+       CreateCampaign(id);
     }
 
-    function addTokensToCampaign(uint id, uint value, address campaignCreator) onlyOwner returns (bool success) {
-        token.transferFrom(campaignCreator, this, value);
+    function addTokensToCampaign(uint id, uint value) onlyOwner returns (bool success) {
+        token.transferFrom(getAddressCreatorById(id), this, value);
         campaigns[id].tokenAmount += value;
         campaigns[id].currentBalance += value;
     }
