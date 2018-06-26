@@ -14,8 +14,8 @@ contract Deal {
 
     enum Status { created, destroyed, finished }
 
-    event CreateCampaign(uint campaignId);
-    event SendCoinForCampaign(uint campaignId);
+    event CreateCampaign(bytes32 campaignId);
+    event SendCoinForCampaign(bytes32 campaignId);
 
     struct Campaign {
         address creator;
@@ -32,14 +32,14 @@ contract Deal {
 
     uint public campaignNum;
 
-    mapping (uint => Campaign) public campaigns;
+    mapping (bytes32 => Campaign) public campaigns;
 
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
 
-    modifier onlyCreator(uint campaignId) {
+    modifier onlyCreator(bytes32 campaignId) {
         require(msg.sender == campaigns[campaignId].creator);
         _;
     }
@@ -93,14 +93,14 @@ contract Deal {
         fee = newFee;
     }
 
-    function createCampaign(uint id, uint value, address campaignCreator) onlyOwner returns (uint) {
+    function createCampaign(bytes32 id, uint value, address campaignCreator) onlyOwner returns (uint) {
        require(getAddressCreatorById(id) == address(0));
        token.transferFrom(campaignCreator, this, value);
        campaigns[id] = Campaign(campaignCreator, value, value, Status.created);
        CreateCampaign(id);
     }
 
-    function addTokensToCampaign(uint id, uint value) onlyOwner returns (bool success) {
+    function addTokensToCampaign(bytes32 id, uint value) onlyOwner returns (bool success) {
         token.transferFrom(getAddressCreatorById(id), this, value);
         campaigns[id].tokenAmount += value;
         campaigns[id].currentBalance += value;
@@ -110,35 +110,35 @@ contract Deal {
         token = ERC223Interface(newAddr);
     }
 
-    function destroyCampaign(uint id) onlyOwner returns (bool success) {
+    function destroyCampaign(bytes32 id) onlyOwner returns (bool success) {
         token.transfer(campaigns[id].creator, campaigns[id].tokenAmount);
         campaigns[id].status = Status.destroyed;
         campaigns[id].currentBalance = 0;
     }
 
-    function checkStatus(uint id) public constant returns (Status status) {
+    function checkStatus(bytes32 id) public constant returns (Status status) {
         return campaigns[id].status;
     }
 
-    function getAddressCreatorById(uint id) public constant returns(address) {
+    function getAddressCreatorById(bytes32 id) public constant returns(address) {
         return campaigns[id].creator;
     }
 
-    function getTokenAmountForCampaign(uint id) public constant returns (uint value) {
+    function getTokenAmountForCampaign(bytes32 id) public constant returns (uint value) {
         return campaigns[id].tokenAmount;
     }
 
-    function getCurrentBalanceForCampaign(uint id) public constant returns (uint value) {
+    function getCurrentBalanceForCampaign(bytes32 id) public constant returns (uint value) {
         return campaigns[id].currentBalance;
     }
 
-    function finishCampaign(uint id) onlyOwner returns (bool success) {
+    function finishCampaign(bytes32 id) onlyOwner returns (bool success) {
         campaigns[id].status = Status.finished;
         token.transfer(campaigns[id].creator, campaigns[id].currentBalance);
         campaigns[id].currentBalance = 0;
     }
 
-    function sendCoin(address[] _routerOwners, uint[] amount, uint id) onlyOwner {
+    function sendCoin(address[] _routerOwners, uint[] amount, bytes32 id) onlyOwner {
         require(campaigns[id].status == Status.created);
         require(amount.length == _routerOwners.length);
         require(sum(amount) <= campaigns[id].tokenAmount);
