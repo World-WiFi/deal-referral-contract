@@ -30,20 +30,12 @@ contract Deal {
 
     ERC223Interface public token;
 
-    uint public campaignNum;
-
     mapping (bytes32 => Campaign) public campaigns;
 
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
-
-    modifier onlyCreator(bytes32 campaignId) {
-        require(msg.sender == campaigns[campaignId].creator);
-        _;
-    }
-
 
     function Deal(address tokenAddress, address _owner, address _fee) {
       owner = _owner;
